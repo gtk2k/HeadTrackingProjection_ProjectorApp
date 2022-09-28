@@ -7,10 +7,14 @@ public class ProjectorApp : MonoBehaviour
     [SerializeField] private int _webSocketServerPort = 9999;
     [SerializeField] private string _webSocketUrl = "ws://192.168.68.103:9999";
     [SerializeField] private Transform _portalCameraRig;
+    [SerializeField] private Canvas _display;
     [SerializeField] private GameObject _portalDisplay;
-    [SerializeField] private GameObject _markerDisplay;
+    [SerializeField] private GameObject _markerDisplayLeft;
+    [SerializeField] private GameObject _markerDisplayRight;
+    [SerializeField] private GameObject _markerDisplayLCD;
     [SerializeField] private int _width = 1920;
     [SerializeField] private int _height = 1080;
+    [SerializeField] private bool _isLCD = true;
 
     [SerializeField] private Transform _stage;
 
@@ -43,26 +47,55 @@ public class ProjectorApp : MonoBehaviour
         //_wssManager.OnMarkerPose += _wssManager_OnMarkerPose;
         //_wssManager.OnClientPose += _wssManager_OnClientPose;
         //_wssManager.ServerStart();
+
         _wsManager = new WebSocketManager(_webSocketUrl);
         _wsManager.OnOpen += _wsManager_OnOpen;
+        _wsManager.OnAppReset += _wsManager_OnAppReset;
         _wsManager.OnMarkerPose += _wsManager_OnMarkerPose;
         _wsManager.OnPlayerPose += _wsManager_OnPlayerPose;
         _wsManager.OnClose += _wsManager_OnClose;
         _wsManager.OnError += _wsManager_OnError;
         _wsManager.Connect();
 
-        _markerDisplay.SetActive(true);
+        _display.targetDisplay = _isLCD ? 0 : 1;
+        _markerDisplayLCD.SetActive(_isLCD);
+        _markerDisplayLeft.SetActive(!_isLCD);
+        _markerDisplayRight.SetActive(!_isLCD);
         _portalDisplay.SetActive(false);
     }
 
-    private void _wsManager_OnError(System.Exception ex)
+    private void _wsManager_OnOpen()
     {
-        Debug.Log($"_wsManager_OnError > error: {ex.Message}");
+        Debug.Log($"_wsManager_OnOpen");
+    }
+
+    private void _wsManager_OnAppReset()
+    {
+        Debug.Log($"_wsManager_OnAppReset");
+        _markerDisplayLCD.SetActive(_isLCD);
+        _markerDisplayLeft.SetActive(!_isLCD);
+        _markerDisplayRight.SetActive(!_isLCD);
+        _portalDisplay.SetActive(false);
+    }
+
+    private void _wsManager_OnMarkerPose(Pose pose)
+    {
+        Debug.Log($"_wsManager_OnMarkerPose");
+        _stage.SetPositionAndRotation(pose.position, pose.rotation);
+        _markerDisplayLCD.SetActive(false);
+        _markerDisplayLeft.SetActive(false);
+        _markerDisplayRight.SetActive(false);
+        _portalDisplay.SetActive(true);
     }
 
     private void _wsManager_OnClose(ushort code, string reason)
     {
         Debug.Log($"_wsManager_OnClose > code: {code}, reason: {reason}");
+    }
+
+    private void _wsManager_OnError(System.Exception ex)
+    {
+        Debug.Log($"_wsManager_OnError > error: {ex.Message}");
     }
 
     private void _wsManager_OnPlayerPose(Pose pose)
@@ -71,38 +104,33 @@ public class ProjectorApp : MonoBehaviour
         _portalCameraRig.SetPositionAndRotation(pose.position, pose.rotation);
     }
 
-    private void _wsManager_OnMarkerPose(Pose pose)
-    {
-        Debug.Log($"_wsManager_OnMarkerPose");
-        _stage.SetPositionAndRotation(pose.position, pose.rotation);
-    }
+    //private void _wssManager_OnClientConnected(string id)
+    //{
+    //    Debug.Log($"Client[{id}] Connected");
+    //    _markerDisplayLCD.SetActive(_isLCD);
+    //    _markerDisplayLeft.SetActive(!_isLCD);
+    //    _markerDisplayRight.SetActive(!_isLCD);
+    //    _portalDisplay.SetActive(false);
+    //}
 
-    private void _wsManager_OnOpen()
-    {
-        Debug.Log($"_wsManager_OnOpen");
-    }
+    //private void _wssManager_OnClientReset(string id)
+    //{
+    //    Debug.Log($"Client[{id}] _wssManager_OnClientReset");
+    //    _markerDisplayLCD.SetActive(_isLCD);
+    //    _markerDisplayLeft.SetActive(!_isLCD);
+    //    _markerDisplayRight.SetActive(!_isLCD);
+    //    _portalDisplay.SetActive(false);
+    //}
 
-    private void _wssManager_OnClientConnected(string id)
-    {
-        Debug.Log($"Client[{id}] Connected");
-        _markerDisplay.SetActive(true);
-        _portalDisplay.SetActive(false);
-    }
-
-    private void _wssManager_OnClientReset(string id)
-    {
-        Debug.Log($"Client[{id}] _wssManager_OnClientReset");
-        _markerDisplay.SetActive(true);
-        _portalDisplay.SetActive(false);
-    }
-
-    private void _wssManager_OnMarkerPose(string id, Pose pose)
-    {
-        Debug.Log($"Client[{id}] _wssManager_OnMarkerPose");
-        _stage.SetPositionAndRotation(pose.position, pose.rotation);
-        _markerDisplay.SetActive(false);
-        _portalDisplay.SetActive(true);
-    }
+    //private void _wssManager_OnMarkerPose(string id, Pose pose)
+    //{
+    //    Debug.Log($"Client[{id}] _wssManager_OnMarkerPose");
+    //    _stage.SetPositionAndRotation(pose.position, pose.rotation);
+    //    _markerDisplayLCD.SetActive(!_isLCD);
+    //    _markerDisplayLeft.SetActive(_isLCD);
+    //    _markerDisplayRight.SetActive(_isLCD);
+    //    _portalDisplay.SetActive(true);
+    //}
 
     private void _wssManager_OnClientPose(string id, Pose pose)
     {

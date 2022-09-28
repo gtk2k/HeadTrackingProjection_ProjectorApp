@@ -45,43 +45,49 @@ public class WebSocketManager
 
     private void _ws_OnMessage(object sender, MessageEventArgs e)
     {
-        if (e.IsBinary)
+        Debug.Log($"_ws_OnMessage > isBinary:{e.IsBinary}");
+
+        _ctx.Post(_ =>
         {
-            var data = e.RawData;
-            var type = (MessageType)data[0];
-            if (type == MessageType.AppReset)
+            if (e.IsBinary)
             {
-                OnAppReset?.Invoke();
-                return;
-            }
-            var px = (float)BitConverter.ToSingle(data, 1);
-            var py = (float)BitConverter.ToSingle(data, 5);
-            var pz = (float)BitConverter.ToSingle(data, 9);
-            var rx = (float)BitConverter.ToSingle(data, 13);
-            var ry = (float)BitConverter.ToSingle(data, 17);
-            var rz = (float)BitConverter.ToSingle(data, 21);
-            var rw = (float)BitConverter.ToSingle(data, 25);
-            //var sx = (float)BitConverter.ToSingle(data, 29);
-            //var sy = (float)BitConverter.ToSingle(data, 33);
-            //var sz = (float)BitConverter.ToSingle(data, 37);
-            var pose = new Pose
-            {
-                position = new Vector3(px, py, pz),
-                rotation = new Quaternion(rx, ry, rz, rw)
-            };
-            if (type == MessageType.MarkerPose)
-            {
-                OnMarkerPose?.Invoke(pose);
+                var data = e.RawData;
+                var type = (MessageType)data[0];
+                Debug.Log(type);
+                if (type == MessageType.AppReset)
+                {
+                    OnAppReset?.Invoke();
+                    return;
+                }
+                var px = (float)BitConverter.ToSingle(data, 1);
+                var py = (float)BitConverter.ToSingle(data, 5);
+                var pz = (float)BitConverter.ToSingle(data, 9);
+                var rx = (float)BitConverter.ToSingle(data, 13);
+                var ry = (float)BitConverter.ToSingle(data, 17);
+                var rz = (float)BitConverter.ToSingle(data, 21);
+                var rw = (float)BitConverter.ToSingle(data, 25);
+                //var sx = (float)BitConverter.ToSingle(data, 29);
+                //var sy = (float)BitConverter.ToSingle(data, 33);
+                //var sz = (float)BitConverter.ToSingle(data, 37);
+                var pose = new Pose
+                {
+                    position = new Vector3(px, py, pz),
+                    rotation = new Quaternion(rx, ry, rz, rw)
+                };
+                if (type == MessageType.MarkerPose)
+                {
+                    OnMarkerPose?.Invoke(pose);
+                }
+                else
+                {
+                    OnPlayerPose?.Invoke(pose);
+                }
             }
             else
             {
-                OnPlayerPose?.Invoke(pose);
+                OnTextMessage?.Invoke(e.Data);
             }
-        }
-        else
-        {
-            OnTextMessage?.Invoke(e.Data);
-        }
+        }, null);
     }
 
     private void Ws_OnClose(object sender, CloseEventArgs e)
@@ -89,6 +95,10 @@ public class WebSocketManager
         _ctx.Post(_ =>
         {
             OnClose?.Invoke(e.Code, e.Reason);
+            if(e.Code == 9999)
+            {
+                _ws = null;
+            }
         }, null);
     }
 
@@ -102,16 +112,15 @@ public class WebSocketManager
 
     public void Connect()
     {
-        _ws.Connect();
+        _ws.ConnectAsync();
     }
 
     public void Close()
     {
         if (_ws != null)
         {
-            _ws.Close();
+            _ws.CloseAsync(9999);
         }
-        _ws = null;
     }
 
     public void SendAppReset()

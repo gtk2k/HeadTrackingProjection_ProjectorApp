@@ -22,7 +22,7 @@ public class WebSocketServerManager
     public enum MessageType : byte
     {
         None = 0,
-        ProjectorAppReset = 1,
+        AppReset = 1,
         MarkerPose = 2,
         PlayerPose = 3
     }
@@ -91,7 +91,8 @@ public class WebSocketServerManager
         _ctx.Post(_ =>
         {
             var type = (MessageType)data[0];
-            if (type == MessageType.ProjectorAppReset)
+            Debug.Log(type);
+            if (type == MessageType.AppReset)
             {
                 OnClientReset?.Invoke(id);
                 return;
